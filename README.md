@@ -8,6 +8,8 @@ This is of course a multi-facetted concern, ranging from hospital staffing and b
 
 ![](Northeast.gif)
 
+![](West.gif)
+
 Here _hospital bed utilization_ is defined as _(estimated hospital beds occupied prior to COVID-19 + beds added daily due to COVID-19 - beds no longer needed after average length of stay) / total beds in an HRR region_ where beds needed due to COVID-19 assumes 20% hospitalization of cases and a 12 day stay (both taken from HGHI). To be clear, these are very much estimates. Even the number of beds available prior to the pandemic is rough and optimistic in the sense that it assumes the half the beds used could be freed up for the surge. Additionally, counties don't always fit neatly within HRR regions so cases are apportioned based on area overlap. Nevertheless, I find the resulting graph to be useful in terms identifying patterns and trends with context.
 
 This is an ongoing project that I'm sure will improve over time, but I hope it's at an least interesting approach to an important topic. Please let me know if there are any concerns with the accuracy of the data or how it's being presented. Thanks!
