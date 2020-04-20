@@ -218,7 +218,7 @@ regions <- covid_beds %>%
   arrange(desc(bed_utilization)) %>%
   pull(region)
 
-for (region_x in regions) {
+for (region_x in regions[1:2]) {
   
   hrr_region <- hrr_covid %>%
     filter(region == region_x)
