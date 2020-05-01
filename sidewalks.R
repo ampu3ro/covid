@@ -1,5 +1,6 @@
 suppressPackageStartupMessages({
   library(sf)
+  library(lwgeom)
   library(tidyverse)
   library(glue)
   library(showtext)
@@ -72,10 +73,25 @@ tract <- glue(data_dir, "tl_2019_25_tract") %>%
 sidewalk <- glue(data_dir, "Sidewalk_Inventory") %>%
   st_read(quiet=T) %>%
   st_transform(crs_proj) %>%
-  transmute(width=SWK_WIDTH %>% as.numeric(),
-            width_bin=cut(width, c(0, 5, 8, 12, Inf),  c("< 5 ft", "5-8 ft", "8-12 ft", "> 12 ft"), include.lowest=T),
-            geometry) %>%
-  filter(width < 100) # data quality
+  transmute(geometry,
+            geometry_circle=st_minimum_bounding_circle(geometry),
+            area=st_area_num(.),
+            length_est=(geometry_circle %>% st_area_num() / pi) %>% sqrt(),
+            width_est=area / length_est,
+            width=SWK_WIDTH %>% as.numeric())
+
+# Check data quality
+
+# sidewalk %>% 
+#   filter(abs(width - width_est) > 10 & width > 20) %>% 
+#   slice(3) %>% 
+#   ggplot() + 
+#   geom_sf() + 
+#   geom_sf(aes(geometry=geometry_circle), color="red", fill=NA)
+
+sidewalk <- sidewalk %>%
+  mutate(width=ifelse(is.na(width) | (abs(width - width_est) > 10 & width > 20), round(width_est), width) %>% replace(width == 0, 1),
+         width_bin=cut(width, c(0, 5, 8, 12, Inf),  c("< 5 ft", "5-8 ft", "8-12 ft", "> 12 ft"), include.lowest=T))
 
 suppressWarnings({
   # Read in Census tract population data
