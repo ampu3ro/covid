@@ -25,25 +25,25 @@ suppressMessages({
     grDevices::windowsFonts("OpenSans-Regular"=grDevices::windowsFont(family))
 })
 
-element_text_sidewalk <- function(...){
-  element_text(family=family, color="white", size=30, ...)
+element_text_sidewalk <- function(size=30, ...){
+  element_text(family=family, color="white", size=size, ...)
 }
 
 theme_sidewalk <- function(...) {
   bg <- element_rect(fill="#282828", color=NA)
   theme(text=element_text_sidewalk(),
-        plot.title=element_text(size=40),
+        plot.title=element_text_sidewalk(size=40),
         panel.background=bg,
         panel.grid=element_blank(),
         plot.background=bg,
         plot.margin=unit(rep(18, 4), "points"),
+        legend.text=element_text_sidewalk(size=25, margin=margin()),
         legend.position="top",
         legend.justification="left",
+        legend.margin=margin(),
         legend.background=bg,
         legend.key=element_blank(),
-        legend.key.size=unit(1, "lines"),
         axis.text=element_text_sidewalk(),
-        axis.title.x=element_text_sidewalk(hjust=0, margin=margin(b=1, unit="lines")),
         ...)
 }
 
@@ -136,15 +136,17 @@ sidewalk_hood <- st_intersection(sidewalk, hood) %>%
 
 # Calculate sidewalk area in each tract
 sidewalk_tract <- st_intersection(sidewalk, tract) %>%
-  mutate(area=st_area_num(.) * 10.7639) %>%
+  mutate(area=st_area_num(.) * 10.7639,
+         length=area / width) %>%
   tibble_only() %>%
   group_by(id, width_bin) %>%
-  summarize_at("area", sum) %>%
+  summarize_at(c("area", "length"), sum) %>%
   ungroup() %>%
   left_join(economic, "id") %>%
   left_join(demographic, "id") %>%
   filter(population > 100) %>% # data quality
-  mutate(area_per_capita=area / population)
+  mutate(area_per_capita=area / population,
+         length_per_capita=length / population)
 
 # Plot neighborhood area summary
 gg_hood <- ggplot(sidewalk_hood) +
@@ -154,14 +156,15 @@ gg_hood <- ggplot(sidewalk_hood) +
   labs(title="Boston per-capita sidewalk length by neighborhood",
        x="Ft of sidewalk per resident",
        fill="Sidewalk width") +
-  theme_sidewalk(axis.title.y=element_blank())
+  theme_sidewalk(axis.title.y=element_blank(),
+                 axis.title.x=element_text_sidewalk(hjust=0, margin=margin(b=1, unit="lines")))
 
 # Plot map of sidewalks
 gg_inset <- ggplot(hood) +
-  geom_sf(aes(color=width_bin), data=sidewalk, fill=NA) +
-  geom_label_repel(aes(geometry=geometry, label=neighborhood), stat="sf_coordinates", color="white", size=10, fill="grey20", alpha=0.8, label.size=0, label.r=0, seed=10)+
+  geom_sf(aes(color=width_bin), data=sidewalk, fill=NA, size=0.2) +
+  geom_label_repel(aes(geometry=geometry, label=neighborhood), stat="sf_coordinates", color="white", size=8, fill="grey20", alpha=0.8, label.size=0, label.r=0, seed=10)+
   coord_sf(crs="NAD27") + 
-  scale_color_viridis_d(option="cividis", direction=-1, guide=F) +
+  scale_color_viridis_d(option="E", direction=-1, guide=F) +
   theme_sidewalk() +
   theme(panel.background=element_blank(),
         plot.background=element_blank(),
@@ -174,16 +177,16 @@ gg_hood_inset <- ggdraw() +
 
 # Plot tract area - income summary
 gg_tract <- ggplot(sidewalk_tract) + 
-  geom_point(aes(area_per_capita, income_median, color=width_bin), size=6, alpha=0.5) +
-  scale_x_continuous(trans="log2", expand=expansion(c(.02, 0.02)), breaks=c(5, 10, 20, 40), position="top") +
+  geom_point(aes(length_per_capita, income_median, color=width_bin), size=6, alpha=0.5) +
+  scale_x_continuous(trans="log2", expand=expansion(c(.02, 0.02)), breaks=c(10, 20, 40, 80), position="top") +
   scale_y_continuous(trans="log2", labels=function(x) paste0("$", round(x / 1000), "k"), breaks=c(25, 50, 100)*1e3) +
   scale_color_viridis_d(option="E", direction=-1, guide=guide_legend(reverse=T, title.position="top")) +
   labs(title="Boston sidewalk area vs median income by Census tract",
-       x="Sq ft of sidewalk per resident (log scale)",
+       x="Ft of sidewalk per resident (log scale)",
        y="Median household income (log scale)",
        color="Sidewalk width") +
   theme_sidewalk()
 
-ggsave("plots/Neighborhood.png", gg_hood_inset, width=14, height=14)
-ggsave("plots/Tract.png", gg_tract, width=14, height=14)
+ggsave("plots/Neighborhood.png", gg_hood_inset, width=9, height=9)
+ggsave("plots/Tract.png", gg_tract, width=9, height=9)
 
