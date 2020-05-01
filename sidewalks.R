@@ -123,14 +123,16 @@ tract_hood <- st_intersection(tract, hood) %>%
 
 # Calculate sidewalk area in each neighborhood
 sidewalk_hood <- st_intersection(sidewalk, hood) %>%
-  mutate(area=st_area_num(.) * 10.7639) %>% # convert to ft^2
+  mutate(area=st_area_num(.) * 10.7639, # convert to ft^2
+         length=area / width) %>% # assume uniform width
   tibble_only() %>%
   group_by(neighborhood, width_bin) %>%
-  summarize_at("area", sum) %>%
+  summarize_at(c("area", "length"), sum) %>%
   ungroup() %>%
   inner_join(tract_hood, "neighborhood") %>%
   mutate(area_per_capita=area / population,
-         neighborhood=reorder(neighborhood, area_per_capita, sum))
+         length_per_capita=length / population,
+         neighborhood=reorder(neighborhood, length_per_capita, sum))
 
 # Calculate sidewalk area in each tract
 sidewalk_tract <- st_intersection(sidewalk, tract) %>%
@@ -146,11 +148,11 @@ sidewalk_tract <- st_intersection(sidewalk, tract) %>%
 
 # Plot neighborhood area summary
 gg_hood <- ggplot(sidewalk_hood) +
-  geom_col(aes(area_per_capita, neighborhood, fill=width_bin)) +
-  scale_x_continuous(expand=expansion(c(0, .05)), breaks=seq(50, 500, 50), position="top") +
+  geom_col(aes(length_per_capita, neighborhood, fill=width_bin)) +
+  scale_x_continuous(expand=expansion(c(0, .05)), breaks=seq(20, 100, 10), position="top") +
   scale_fill_viridis_d(option="E", direction=-1, guide=guide_legend(reverse=T, title.position="top")) +
-  labs(title="Boston per-capita sidewalk area by neighborhood",
-       x="Sq ft of sidewalk per resident",
+  labs(title="Boston per-capita sidewalk length by neighborhood",
+       x="Ft of sidewalk per resident",
        fill="Sidewalk width") +
   theme_sidewalk(axis.title.y=element_blank())
 
