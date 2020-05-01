@@ -91,7 +91,8 @@ sidewalk <- glue(data_dir, "Sidewalk_Inventory") %>%
 
 sidewalk <- sidewalk %>%
   mutate(width=ifelse(is.na(width) | (abs(width - width_est) > 10 & width > 20), round(width_est), width) %>% replace(width == 0, 1),
-         width_bin=cut(width, c(0, 5, 8, 12, Inf),  c("< 5 ft", "5-8 ft", "8-12 ft", "> 12 ft"), include.lowest=T))
+         width_bin=cut(width, c(0, 5, 8, 12, Inf),  c("< 5 ft", "5-8 ft", "8-12 ft", "> 12 ft"), include.lowest=T)) %>%
+  mutate(width_bin=fct_rev(width_bin))
 
 suppressWarnings({
   # Read in Census tract population data
@@ -129,8 +130,7 @@ sidewalk_hood <- st_intersection(sidewalk, hood) %>%
   ungroup() %>%
   inner_join(tract_hood, "neighborhood") %>%
   mutate(area_per_capita=area / population,
-         neighborhood=reorder(neighborhood, area_per_capita, sum),
-         width_bin=fct_rev(width_bin))
+         neighborhood=reorder(neighborhood, area_per_capita, sum))
 
 # Calculate sidewalk area in each tract
 sidewalk_tract <- st_intersection(sidewalk, tract) %>%
